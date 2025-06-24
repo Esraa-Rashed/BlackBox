@@ -1,5 +1,13 @@
-node_modules/
+# Environment variables
 .env
-*.pem
-*.key
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase credentials
 serviceAccountKey.json
+/etc/secrets/serviceAccountKey.json
+
+# Node modules
+node_modules/
