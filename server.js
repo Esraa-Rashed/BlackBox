@@ -3,11 +3,31 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const admin = require('firebase-admin');
 
+// Load environment variables
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'your-project-id';
+const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://your-project-default-rtdb.firebaseio.com'; 
+const FIREBASE_CREDENTIAL_PATH = process.env.FIREBASE_CREDENTIAL_PATH || './serviceAccountKey.json';
+
+// Try loading secret file or local JSON key
+let serviceAccount;
+try {
+  // Attempt to load secret file (used on Render, etc.)
+  serviceAccount = require('/etc/secrets/serviceAccountKey.json');
+} catch (err) {
+  try {
+    // Fallback to local file (used during development)
+    serviceAccount = require('./serviceAccountKey.json');
+  } catch (err) {
+    console.error("❌ Firebase credentials not found!");
+    console.error("👉 Make sure you have set up serviceAccountKey.json or use environment variables.");
+    process.exit(1);
+  }
+}
+
 // Initialize Firebase
-const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://your-project.firebaseio.com" 
+  databaseURL: FIREBASE_DATABASE_URL
 });
 
 const db = admin.database();
@@ -16,11 +36,11 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Route to receive data from ESP32
+// Route to receive encrypted data from ESP32
 app.post('/upload', (req, res) => {
   const data = req.body;
 
-  console.log("📥 Received data:", data);
+  console.log("📥 Received raw data:", data);
 
   // Save to Firebase under /gps_tracker_data/deviceId/
   const ref = db.ref('gps_tracker_data').child(data.device);
@@ -32,6 +52,11 @@ app.post('/upload', (req, res) => {
 
   console.log("✅ Data saved to Firebase");
   res.status(200).send("OK");
+});
+
+// Optional: Add a test route
+app.get('/', (req, res) => {
+  res.send("ESP32 GPS/GSM Tracker Proxy Server Running 🚀");
 });
 
 // Start server
